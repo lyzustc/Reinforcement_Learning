@@ -76,23 +76,23 @@ class Viewer(pyglet.window.Window):
 
 
 class ArmEnv(object):
-    viewer = None
     dt = 0.1
-    action_bound = [-1, 1]
-    goal = {'x': 100., 'y': 100., 'l': 40}
-    state_dim = 2
-    action_dim = 2
+    ACTION_BOUND = [-1, 1]
+    GOAL = {'x': 100., 'y': 100., 'l': 40}
+    STATE_DIM = 2
+    ACTION_DIM = 2
 
     def __init__(self):
         self.arm_info = np.zeros(2, dtype=[('l', np.float32), ('r', np.float32)])
         self.arm_info['l'] = 100
         self.arm_info['r'] = np.pi / 6
+        self.viewer = None
 
     def step(self, action):
         done = False
         r = 0
 
-        action = np.clip(action, *self.action_bound)
+        action = np.clip(action, *self.ACTION_BOUND)
         self.arm_info['r'] += action * self.dt
         self.arm_info['r'] %= np.pi * 2
 
@@ -104,8 +104,8 @@ class ArmEnv(object):
         a1xy_ = np.array([np.cos(a1r), np.sin(a1r)]) * a1l + a1xy
         finger = np.array([np.cos(a1r + a2r), np.sin(a1r + a2r)]) * a2l + a1xy_
 
-        if self.goal['x'] - self.goal['l']/2 < finger[0] < self.goal['x'] + self.goal['l']/2:
-            if self.goal['y'] - self.goal['l']/2 < finger[1] < self.goal['y'] + self.goal['l']/2:
+        if self.GOAL['x'] - self.GOAL['l']/2 < finger[0] < self.GOAL['x'] + self.GOAL['l']/2:
+            if self.GOAL['y'] - self.GOAL['l']/2 < finger[1] < self.GOAL['y'] + self.GOAL['l']/2:
                 done = True
                 r = 1.
         return s, r, done
@@ -119,7 +119,7 @@ class ArmEnv(object):
 
     def render(self):
         if self.viewer is None:
-            self.viewer = Viewer(self.arm_info, self.goal)
+            self.viewer = Viewer(self.arm_info, self.GOAL)
         self.viewer.render()
 
 
