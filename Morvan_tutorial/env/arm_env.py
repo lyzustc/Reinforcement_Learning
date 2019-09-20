@@ -89,7 +89,6 @@ class ArmEnv(object):
         self.viewer = None
 
     def step(self, action):
-        done = False
         r = 0
 
         action = np.clip(action, *self.ACTION_BOUND)
@@ -106,9 +105,13 @@ class ArmEnv(object):
 
         if self.GOAL['x'] - self.GOAL['l']/2 < finger[0] < self.GOAL['x'] + self.GOAL['l']/2:
             if self.GOAL['y'] - self.GOAL['l']/2 < finger[1] < self.GOAL['y'] + self.GOAL['l']/2:
-                done = True
+                s = 'terminal'
                 r = 1.
-        return s, r, done
+
+        return s, r
+
+    def get_actions(self):
+        return self.ACTION_DIM, self.ACTION_BOUND
 
     def reset(self):
         self.arm_info['r'] = 2 * np.pi * np.random.rand(2)
