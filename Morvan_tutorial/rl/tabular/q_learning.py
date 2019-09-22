@@ -5,6 +5,7 @@ from .tabular import tabular
 class q_learning(tabular):
     def __init__(self, actions, alpha=0.01, epsilon=0.9, gamma=0.9):
         super(q_learning, self).__init__(actions, alpha, epsilon, gamma)
+        self.memory_size = 0
 
     def learn(self):
         s, a, r, s_new = self.store_list.pop()
