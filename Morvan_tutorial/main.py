@@ -1,10 +1,10 @@
 import env
-import rl
+from rl.tabular import *
 
 def main():
     demo_env = env.one_dim_walk(6)
     actions = demo_env.get_actions()
-    learner = rl.MC_epsilon(actions)
+    learner = q_lambda(actions)
 
     MAX_EPISODES = 10
     for _ in range(MAX_EPISODES):
