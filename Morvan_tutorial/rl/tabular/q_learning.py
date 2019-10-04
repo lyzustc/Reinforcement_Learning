@@ -13,7 +13,7 @@ class q_learning(tabular):
         q_old = self.table.loc[s, a]
 
         if s_new != 'terminal':
-            q_new = r + self.gamma * self.table.iloc[s_new, :].max()
+            q_new = r + self.gamma * self.table.loc[s_new, :].max()
         else:
             q_new = r
 

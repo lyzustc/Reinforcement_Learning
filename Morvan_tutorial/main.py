@@ -2,11 +2,11 @@ import env
 from rl.tabular import *
 
 def main():
-    demo_env = env.one_dim_walk(6)
+    demo_env = env.Maze()
     actions = demo_env.get_actions()
-    learner = q_lambda(actions)
+    learner = q_learning(actions, alpha=0.1)
 
-    MAX_EPISODES = 10
+    MAX_EPISODES = 30
     for _ in range(MAX_EPISODES):
         s = demo_env.reset()
         demo_env.render()
@@ -21,6 +21,8 @@ def main():
                 learner.learn()
 
             s = s_new
+
+        demo_env.render()
 
 
 if __name__ == "__main__":

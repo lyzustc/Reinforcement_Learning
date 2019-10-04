@@ -15,7 +15,7 @@ class q_lambda(tabular):
         
         q_old = self.table.loc[s, a]
         if s_new != 'terminal':
-            a_star = self.table.iloc[s_new, :].idxmax()
+            a_star = self.table.loc[s_new, :].idxmax()
             q_new = r + self.gamma * self.table.loc[s_new, a_new]
         else:
             q_new = r

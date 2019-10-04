@@ -17,11 +17,12 @@ class tabular(object):
 
     def choose_action(self, state):
         self.check_state_exist(state)
-        state_actions = self.table.iloc[state, :]
-        if (np.random.uniform() > self.epsilon) or (state_actions.all() == 0):
+        state_actions = self.table.loc[state, :]
+        
+        if (np.random.uniform() > self.epsilon):
             action = np.random.choice(self.actions)
         else:
-            action = state_actions.idxmax()
+            action = np.random.choice(state_actions[state_actions == np.max(state_actions)].index)
 
         return action
 
