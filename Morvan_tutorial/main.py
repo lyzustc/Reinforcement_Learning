@@ -4,7 +4,7 @@ from rl.tabular import *
 def main():
     demo_env = env.Maze()
     actions = demo_env.get_actions()
-    learner = q_learning(actions, alpha=0.1)
+    learner = sarsa_lambda(actions, alpha=0.01)
 
     MAX_EPISODES = 30
     for _ in range(MAX_EPISODES):

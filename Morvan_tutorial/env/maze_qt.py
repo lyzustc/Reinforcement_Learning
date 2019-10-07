@@ -7,16 +7,20 @@ from PyQt5.QtGui import QPainter
 from PyQt5.QtCore import Qt, QRect, QTimer, QEventLoop
 
 UNIT = 80
-MAZE_H = 4
-MAZE_W = 4
 
 class Maze_visual(QWidget):
     ACTIONS = ['u', 'd', 'l', 'r']
 
-    def __init__(self):
+    def __init__(self, h, w, heavens, hells, ini_coord=(0,0)):
         super().__init__()
+        self.MAZE_H = h
+        self.MAZE_W = w
+        self.heaven_coords = heavens
+        self.hell_coords = hells
+
         self.setWindowTitle('maze')
-        self.resize(MAZE_H * UNIT, MAZE_W * UNIT)
+        self.resize(self.MAZE_W * UNIT, self.MAZE_H * UNIT)
+        self.ini_coord = ini_coord
         self._center()
         self._build_maze()
     
@@ -25,7 +29,7 @@ class Maze_visual(QWidget):
 
     def _state_code(self, position):
         x, y = position
-        return int(y / UNIT) * MAZE_W + int(x / UNIT)
+        return int(y / UNIT) * self.MAZE_W + int(x / UNIT)
 
     def _center(self):
         qr = self.frameGeometry()
@@ -37,15 +41,16 @@ class Maze_visual(QWidget):
         origin = np.array([UNIT/2, UNIT/2])
 
         hell_centers = []
-        hell_centers.append(origin + np.array([UNIT * 2, UNIT]))
-        hell_centers.append(origin + np.array([UNIT, UNIT * 2]))
+        for coord in self.hell_coords:
+            hell_centers.append(origin + np.array([UNIT * coord[0], UNIT * coord[1]]))
         self.hells = []
         for center in hell_centers:
             self.hells.append(QRect(center[0] - (UNIT - 10) / 2, center[1] - (UNIT - 10) / 2,
                                     UNIT - 10, UNIT - 10))
 
         heaven_centers = []
-        heaven_centers.append(origin + UNIT * 2)
+        for coord in self.heaven_coords:
+            heaven_centers.append(origin + np.array([UNIT * coord[0], UNIT * coord[1]]))
         self.heavens = []
         for center in heaven_centers:
             self.heavens.append(QRect(center[0] - (UNIT - 10) / 2, center[1] - (UNIT - 10) / 2,
@@ -57,11 +62,11 @@ class Maze_visual(QWidget):
 
         qp.setPen(Qt.black)
 
-        for c in range(UNIT, MAZE_W * UNIT, UNIT):
-            x0, y0, x1, y1 = c, 0, c, MAZE_H * UNIT
+        for c in range(UNIT, self.MAZE_W * UNIT, UNIT):
+            x0, y0, x1, y1 = c, 0, c, self.MAZE_H * UNIT
             qp.drawLine(x0, y0, x1, y1)
-        for r in range(UNIT, MAZE_H * UNIT, UNIT):
-            x0, y0, x1, y1 = 0, r, MAZE_W * UNIT, r
+        for r in range(UNIT, self.MAZE_H * UNIT, UNIT):
+            x0, y0, x1, y1 = 0, r, self.MAZE_W * UNIT, r
             qp.drawLine(x0, y0, x1, y1)
 
         qp.setBrush(Qt.black)
@@ -78,11 +83,10 @@ class Maze_visual(QWidget):
         qp.end()
         
     def reset(self):
-        origin = np.array([UNIT/2, UNIT/2])
-        self.state = [origin[0] - (UNIT - 10) / 2, origin[1] - (UNIT - 10) / 2]
+        origin = np.array([5, 5])
+        self.state = origin + np.array([self.ini_coord[0] * UNIT, self.ini_coord[1] * UNIT])
         self.agent = QRect(self.state[0], self.state[1], UNIT - 10, UNIT - 10)
-        self.update()
-        self.show()
+        self.render()
 
         return self._state_code(self.state)
 
@@ -93,10 +97,10 @@ class Maze_visual(QWidget):
             if s[1] > UNIT:
                 base_action[1] -= UNIT
         elif action == 'd':
-            if s[1] < (MAZE_H - 1) * UNIT:
+            if s[1] < (self.MAZE_H - 1) * UNIT:
                 base_action[1] += UNIT
         elif action == 'l':
-            if s[0] < (MAZE_W - 1) * UNIT:
+            if s[0] < (self.MAZE_W - 1) * UNIT:
                 base_action[0] += UNIT
         elif action == 'r':
             if s[0] > UNIT:
@@ -132,7 +136,7 @@ class Maze_visual(QWidget):
 class Maze():
     def __init__(self):
         self.app = QApplication(sys.argv)
-        self.maze = Maze_visual()
+        self.maze = Maze_visual(4, 4, [(2,2)], [(2,1),(1,2)])
 
     def get_actions(self):
         return self.maze.get_actions()
@@ -152,13 +156,61 @@ class Maze():
 
 
 
+class one_dimension():
+    ACTIONS = ['l', 'r']
+    def __init__(self):
+        self.app = QApplication(sys.argv)
+        self.maze = Maze_visual(1, 6, [(5,0)], [])
+
+    def get_actions(self):
+        return self.ACTIONS
+
+    def reset(self):
+        return self.maze.reset()
+
+    def render(self):
+        self.maze.render()
+
+    def step(self, action):
+        return self.maze.step(action)
+
+    def __del__(self):
+        self.render()
+        sys.exit(self.app.exec_())
+
+
+
+class one_dimension_two_reward():
+    ACTIONS = ['l', 'r']
+    def __init__(self):
+        self.app = QApplication(sys.argv)
+        self.maze = Maze_visual(1, 7, [(0,0), (6,0)], [], (3,0))
+
+    def get_actions(self):
+        return self.ACTIONS
+
+    def reset(self):
+        return self.maze.reset()
+
+    def render(self):
+        self.maze.render()
+
+    def step(self, action):
+        return self.maze.step(action)
+
+    def __del__(self):
+        self.render()
+        sys.exit(self.app.exec_())
+
+
+
 if __name__ == '__main__':
-    maze = Maze()
+    maze = one_dimension_two_reward()
     maze.reset()
-    actions = maze.get_actions()
+    # actions = maze.get_actions()
 
     for _ in range(100):
-        i = np.random.randint(0, len(actions))
-        s_, r = maze.step(actions[i])
+        # i = np.random.randint(0, len(actions))
+        s_, r = maze.step('u')
         print("the reward is {}, new state is {}".format(r, s_))
         maze.render()
