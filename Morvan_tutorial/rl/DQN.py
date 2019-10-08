@@ -13,7 +13,9 @@ class DeepQNetwork:
         memory_size=500,
         batch_size=32,
         e_greedy_increment=None,
-        output_graph=False
+        output_graph=False,
+        use_double_q=True,
+        sess=None
     ):
         self.n_actions = n_actions
         self.n_features = n_features
@@ -25,6 +27,7 @@ class DeepQNetwork:
         self.batch_size = batch_size
         self.epsilon_increment = e_greedy_increment
         self.epsilon = 0 if e_greedy_increment is not None else self.epsilon_max
+        self.use_double_q = use_double_q
 
         self.learn_step_counter = 0
         self.memory = np.zeros((self.memory_size, n_features*2+2))
@@ -34,7 +37,10 @@ class DeepQNetwork:
         e_params = tf.get_collection('eval_net_params')
         self.replace_target_op = [tf.assign(t, e) for t,e in zip(t_params, e_params)]
 
-        self.sess = tf.Session()
+        if sess is not None:
+            self.sess = sess
+        else:
+            self.sess = tf.Session()
 
         if output_graph:
             tf.summary.FileWriter("logs/", self.sess.graph)
@@ -95,6 +101,13 @@ class DeepQNetwork:
         if np.random.uniform() < self.epsilon:
             action_value = self.sess.run(self.q_eval, feed_dict = {self.s: s})
             action = np.argmax(action_value)
+
+            if not hasattr(self, 'q'):
+                self.q = []
+                self.running_q = 0
+            self.running_q = self.running_q * 0.99 + 0.11 * np.max(action_value)
+            self.q.append(self.running_q)
+
         else:
             action = np.random.randint(0, self.n_actions)
 
@@ -121,7 +134,12 @@ class DeepQNetwork:
         eval_act_index = batch_memory[:, self.n_features].astype(int)
         reward = batch_memory[:, self.n_features + 1]
 
-        q_target[batch_index, eval_act_index] = reward + self.gamma * np.max(q_next, axis=1)
+        if not self.use_double_q:
+            q_target[batch_index, eval_act_index] = reward + self.gamma * np.max(q_next, axis=1)
+        else:
+            q_eval_new = self.sess.run(self.q_eval, feed_dict={self.s: batch_memory[:, -self.n_features:]})
+            opt_actions = np.argmax(q_eval_new, axis=1)
+            q_target[batch_index, eval_act_index] = reward + self.gamma * q_next[batch_index, opt_actions]
 
         _, self.cost = self.sess.run([self._train_op, self.loss], feed_dict={self.s: batch_memory[:, :self.n_features], self.q_target: q_target})
 
