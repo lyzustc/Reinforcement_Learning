@@ -9,7 +9,6 @@ from PyQt5.QtCore import Qt, QRect, QTimer, QEventLoop
 UNIT = 80
 
 class Maze_visual(QWidget):
-    ACTIONS = ['u', 'd', 'l', 'r']
 
     def __init__(self, h, w, heavens, hells, ini_coord=(0,0)):
         super().__init__()
@@ -23,9 +22,6 @@ class Maze_visual(QWidget):
         self.ini_coord = ini_coord
         self._center()
         self._build_maze()
-    
-    def get_actions(self):
-        return self.ACTIONS
 
     def _state_code(self, position):
         x, y = position
@@ -88,7 +84,8 @@ class Maze_visual(QWidget):
         self.agent = QRect(self.state[0], self.state[1], UNIT - 10, UNIT - 10)
         self.render()
 
-        return self._state_code(self.state)
+        # return self._state_code(self.state)
+        return self.state
 
     def step(self, action):
         s = self.state
@@ -107,24 +104,25 @@ class Maze_visual(QWidget):
                 base_action[0] -= UNIT
 
         s_ = [s[0]+base_action[0], s[1]+base_action[1]]
-        self.state = s_
+        self.state = np.array(s_)
 
         reward = 0
         for heaven in self.heavens:
             if s_[0] == heaven.x() and s_[1] == heaven.y():
                 reward = 1
-                return 'terminal', reward
+                return self.state, reward, True
 
         for hell in self.hells:
             if s_[0] == hell.x() and s_[1] == hell.y():
                 reward = -1
-                return 'terminal', reward
+                return self.state, reward, True
 
-        return self._state_code(s_), reward
+        # return self._state_code(s_), reward
+        return self.state, reward, False
   
     def render(self):
         loop = QEventLoop()
-        QTimer.singleShot(200, loop.quit)
+        QTimer.singleShot(100, loop.quit)
         loop.exec_()
 
         self.agent.moveTo(self.state[0], self.state[1])
@@ -134,12 +132,15 @@ class Maze_visual(QWidget):
 
 
 class Maze():
+    ACTIONS = ['u', 'd', 'l', 'r']
     def __init__(self):
         self.app = QApplication(sys.argv)
-        self.maze = Maze_visual(4, 4, [(2,2)], [(2,1),(1,2)])
+        self.maze = Maze_visual(4, 4, [(2,2)], [(2,1)])#,(1,2)])
+        self.n_features = 2
+        self.n_actions = 4
 
     def get_actions(self):
-        return self.maze.get_actions()
+        return list(range(len(self.ACTIONS)))
 
     def reset(self):
         return self.maze.reset()
@@ -148,7 +149,7 @@ class Maze():
         self.maze.render()
 
     def step(self, action):
-        return self.maze.step(action)
+        return self.maze.step(self.ACTIONS[action])
 
     def __del__(self):
         self.render()
@@ -163,7 +164,7 @@ class one_dimension():
         self.maze = Maze_visual(1, 6, [(5,0)], [])
 
     def get_actions(self):
-        return self.ACTIONS
+        return list(range(len(self.ACTIONS)))
 
     def reset(self):
         return self.maze.reset()
@@ -172,7 +173,7 @@ class one_dimension():
         self.maze.render()
 
     def step(self, action):
-        return self.maze.step(action)
+        return self.maze.step(self.ACTIONS[action])
 
     def __del__(self):
         self.render()
@@ -196,7 +197,7 @@ class one_dimension_two_reward():
         self.maze.render()
 
     def step(self, action):
-        return self.maze.step(action)
+        return self.maze.step(self.ACTIONS[action])
 
     def __del__(self):
         self.render()
