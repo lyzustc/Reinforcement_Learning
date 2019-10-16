@@ -31,7 +31,8 @@ class DoubleDQN(DQN):
             store_q
         )
         
-    def learn(self, s, a, r, s_):
+    def learn(self):
+        s, a, r, s_ = self.sample()
         if self.learn_step_counter % self.replace_target_iter == 0:
             self.sess.run(self.replace_target_op)
             print('\ntarget_params_replaced\n')
@@ -101,8 +102,7 @@ if __name__ == '__main__':
             learner.store_transition(s, a, reward, s_new)
 
             if total_steps > MEMORY_SIZE:
-                learner.learn(*learner.sample())
-                ep_r = 0
+                learner.learn()
 
             if total_steps - MEMORY_SIZE > 20000:
                 break

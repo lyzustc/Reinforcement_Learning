@@ -34,41 +34,46 @@ class DQN(object):
 
         self.sess = sess
 
-        self.sess.run(tf.global_variables_initializer())
+    def _build_layers(self, s, c_names):
+        n_l1 = 20
+        w_initializer, b_initializer = tf.random_normal_initializer(0., 0.3), tf.constant_initializer(0.1)
 
-    def _build_layers(self, s, scope, trainable):
-        with tf.variable_scope(scope):
-            n_l1 = 10
-            w_initializer, b_initializer = tf.random_normal_initializer(0., 0.3), tf.constant_initializer(0.1)
+        with tf.variable_scope('l1'):
+            w1 = tf.get_variable('w1', [self.n_features, n_l1], initializer=w_initializer, collections=c_names)
+            b1 = tf.get_variable('b1', [1, n_l1], initializer=b_initializer, collections=c_names)
+            l1 = tf.nn.relu(tf.matmul(self.s, w1) + b1)
 
-            with tf.variable_scope('l1'):
-                w1 = tf.get_variable('w1', [self.n_features, n_l1], initializer=w_initializer, trainable=trainable)
-                b1 = tf.get_variable('b1', [1, n_l1], initializer=b_initializer, trainable=trainable)
-                l1 = tf.nn.relu(tf.matmul(self.s, w1) + b1)
+        with tf.variable_scope('l2'):
+            w2 = tf.get_variable('w2', [n_l1, self.n_actions], initializer=w_initializer, collections=c_names)
+            b2 = tf.get_variable('b2', [1, self.n_actions], initializer=b_initializer, collections=c_names)
+            out = tf.matmul(l1, w2) + b2
 
-            with tf.variable_scope('l2'):
-                w2 = tf.get_variable('w2', [n_l1, self.n_actions], initializer=w_initializer, trainable=trainable)
-                b2 = tf.get_variable('b2', [1, self.n_actions], initializer=b_initializer, trainable=trainable)
-                out = tf.matmul(l1, w2) + b2
         return out
 
     def _build_net(self):
         self.s = tf.placeholder(tf.float32, [None, self.n_features], name='s')
         self.q_target = tf.placeholder(tf.float32, [None, self.n_actions], name='Q_target')
 
-        self.q_eval = self._build_layers(self.s, 'eval_net', True)
+        with tf.variable_scope('eval_net'):
+            self.q_eval = self._build_layers(self.s, ['eval_net_params', tf.GraphKeys.GLOBAL_VARIABLES])
 
+        self.s_ = tf.placeholder(tf.float32, [None, self.n_features], name='s_')
+        with tf.variable_scope('target_net'):
+            self.q_next = self._build_layers(self.s_, ['target_net_params', tf.GraphKeys.GLOBAL_VARIABLES])
+
+        self._build_op()
+
+        t_params = tf.get_collection('target_net_params')
+        e_params = tf.get_collection('eval_net_params')
+        # t_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, 'target_net')
+        # e_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, 'eval_net')
+        self.replace_target_op = [tf.assign(t, e) for t,e in zip(t_params, e_params)]
+
+    def _build_op(self):
         with tf.variable_scope('loss'):
             self.loss = tf.reduce_mean(tf.squared_difference(self.q_target, self.q_eval))
         with tf.variable_scope('train'):
             self._train_op = tf.train.RMSPropOptimizer(self.lr).minimize(self.loss)
-
-        self.s_ = tf.placeholder(tf.float32, [None, self.n_features], name='s_')
-        self.q_next = self._build_layers(self.s_, 'target_net', False)
-
-        t_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='target_net')
-        e_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='eval_net')
-        self.replace_target_op = [tf.assign(t, e) for t,e in zip(t_params, e_params)]
 
     def store_transition(self, s, a, r, s_):
         if not hasattr(self, 'memory_counter'):
@@ -110,7 +115,8 @@ class DQN(object):
 
         return s, a, r, s_
 
-    def learn(self, s, a, r, s_):
+    def learn(self):
+        s, a, r, s_ = self.sample()
         if self.learn_step_counter % self.replace_target_iter == 0:
             self.sess.run(self.replace_target_op)
             print('\ntarget_params_replaced\n')
