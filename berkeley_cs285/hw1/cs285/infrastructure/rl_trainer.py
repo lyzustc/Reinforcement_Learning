@@ -3,6 +3,8 @@ import numpy as np
 import tensorflow as tf
 import gym
 import os
+from collections import OrderedDict
+import time
 
 from cs285.infrastructure.utils import *
 from cs285.infrastructure.tf_utils import create_tf_session
@@ -155,7 +157,7 @@ class RL_Trainer(object):
 
                 # collect data, batch_size is the number of transitions you want to collect.
         if itr == 0:
-            loaded_paths = pickle.load(load_initial_expertdata)
+            loaded_paths = pickle.load(open(load_initial_expertdata,'rb'))
             return loaded_paths, 0, None
         # TODO collect data to be used for training
         # HINT1: use sample_trajectories from utils
